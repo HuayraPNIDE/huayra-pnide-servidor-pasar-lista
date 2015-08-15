@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Pasar lista</title>
+
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/bootstrap-theme.min.css">
+
+	<script src="js/jquery-1.11.3.min.js"></script>
+
+	<script type="text/javascript">
+
+	function ldap2json(ldapstring) {
+
+		var json = [];
+		var jsonIter = 0;
+
+		var strings = ldapstring.split('\n');
+
+		for(var k = 0; k < strings.length; k++){
+			var s = strings[k];
+			if(!s) {
+				continue;
+			}
+
+			var lv = s.split(':');
+			var llave = lv[0].trim();
+			var valor = lv[1].trim();
+
+			if(llave == 'cn') {
+				jsonIter = json.push({}) - 1;
+			}
+
+			json[jsonIter][llave] = valor;
+		}
+
+		return json;
+	}
+
+	$(function() {
+		console.log("Buscando");
+		var exec = require('child_process').exec;
+		var cmd = 'ldapsearch -xLLL -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
+
+		exec(cmd, function(error, stdout, stderr) {
+
+			$('#tabla-cont').empty();
+			var json = ldap2json(stdout);
+
+			var tabla = '<table class="table table-striped">';
+
+			tabla += '<thead>';
+			tabla += '<tr>';
+			tabla += '<th># Usuario</th>';
+			tabla += '<th>Nombre completo</th>';
+			tabla += '<th>Directorio personal</th>';
+			tabla += '<th>Grado</th>';
+			tabla += '<th>Nombre de usuario</th>';
+			tabla += '</tr>';
+			tabla += '</thead>';
+			tabla += '<tbody>';
+
+			
+			for(var k = 0; k < json.length; k++) {
+				var alumno = json[k];
+
+				tabla += '<tr>';
+				tabla += '<td>'+alumno.uidNumber+'</td>';
+				tabla += '<td>'+alumno.cn+'</td>';
+				tabla += '<td>'+alumno.homeDirectory+'</td>';
+				tabla += '<td>'+alumno.info+'</td>';
+				tabla += '<td>'+alumno.uid+'</td>';
+				tabla += '</tr>';
+			}
+
+			tabla += '</tbody>';
+			tabla += '</table>';
+
+			
+					
+			$(tabla).appendTo('#tabla-cont');
+
+		});
+	});
+
+	</script>
+
+</head>
+<body>
+
+	<h1>Matr&iacute;cula de alumnos</h1>
+	<br>
+	<div class="input-group input-group-lg">
+ 		<span class="input-group-addon" id="sizing-addon1">Buscar </span>
+		<input id="busquedaAlumno" type="text" class="form-control" placeholder="Buscar..." aria-describedby="sizing-addon1" autofocus>
+	</div>
+	<br>
+
+	<div id="tabla-cont">
+	</div>
+
+</body>
+</html>
+
