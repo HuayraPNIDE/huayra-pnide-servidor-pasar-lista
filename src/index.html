@@ -17,51 +17,59 @@
 		filtroActivo = filtro;
 	}
 
-	function buscarConFiltro(val) {
+	function imprimirTabla(idTabla, json) {
+
+		var tabla = '<table class="table table-striped">';
+
+		tabla += '<thead>';
+		tabla += '<tr>';
+		tabla += '<th># Usuario</th>';
+		tabla += '<th>Nombre completo</th>';
+		tabla += '<th>Directorio personal</th>';
+		tabla += '<th>Grado</th>';
+		tabla += '<th>Nombre de usuario</th>';
+		tabla += '</tr>';
+		tabla += '</thead>';
+		tabla += '<tbody>';
+
+			
+		for(var k = 0; k < json.length; k++) {
+			var alumno = json[k];
+
+			tabla += '<tr>';
+			tabla += '<td>'+alumno.uidNumber+'</td>';
+			tabla += '<td>'+alumno.cn+'</td>';
+			tabla += '<td>'+alumno.homeDirectory+'</td>';
+			tabla += '<td>'+alumno.info+'</td>';
+			tabla += '<td>'+alumno.uid+'</td>';
+			tabla += '</tr>';
+		}
+
+		tabla += '</tbody>';
+		tabla += '</table>';
+
+		$(tabla).appendTo(idTabla);
+	}
+
+	function buscarConFiltro(val, cb) {
 		var exec = require('child_process').exec;
 		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
 		cmd += filtroActivo+'=*'+val+'* ';
 		cmd += 'cn homeDirectory info uid uidNumber';
 		cmd += '| grep -v dn';
 
-		//console.log(cmd);
+		exec(cmd, function(error, stdout, stderr) {
+			cb(stdout);
+		});
+	}
+
+	function buscarTodos(cb) {
+
+		var exec = require('child_process').exec;
+		var cmd = 'ldapsearch -xLLL -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
 
 		exec(cmd, function(error, stdout, stderr) {
-
-			$('#tabla-cont').empty();
-			var json = ldap2json(stdout);
-
-			var tabla = '<table class="table table-striped">';
-
-			tabla += '<thead>';
-			tabla += '<tr>';
-			tabla += '<th># Usuario</th>';
-			tabla += '<th>Nombre completo</th>';
-			tabla += '<th>Directorio personal</th>';
-			tabla += '<th>Grado</th>';
-			tabla += '<th>Nombre de usuario</th>';
-			tabla += '</tr>';
-			tabla += '</thead>';
-			tabla += '<tbody>';
-
-			
-			for(var k = 0; k < json.length; k++) {
-				var alumno = json[k];
-
-				tabla += '<tr>';
-				tabla += '<td>'+alumno.uidNumber+'</td>';
-				tabla += '<td>'+alumno.cn+'</td>';
-				tabla += '<td>'+alumno.homeDirectory+'</td>';
-				tabla += '<td>'+alumno.info+'</td>';
-				tabla += '<td>'+alumno.uid+'</td>';
-				tabla += '</tr>';
-			}
-
-			tabla += '</tbody>';
-			tabla += '</table>';
-
-			$(tabla).appendTo('#tabla-cont');
-
+			cb(stdout);
 		});
 	}
 
@@ -99,54 +107,21 @@
 			if(e.which == 13) {
 
 				var val = $('#busquedaAlumno').val();
-				var ret = buscarConFiltro(val);
+				buscarConFiltro(val, function(ret) {
+					$('#tabla-cont').empty();
+					var json = ldap2json(ret);
 
-				//console.log(ret);
+					imprimirTabla('#tabla-cont', json);
+				});
 			}
 		});
 
 
-		console.log("Buscando");
-		var cmd = 'ldapsearch -xLLL -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
-
-		exec(cmd, function(error, stdout, stderr) {
-
+		buscarTodos(function(ret) {
 			$('#tabla-cont').empty();
-			var json = ldap2json(stdout);
+			var json = ldap2json(ret);
 
-			var tabla = '<table class="table table-striped">';
-
-			tabla += '<thead>';
-			tabla += '<tr>';
-			tabla += '<th># Usuario</th>';
-			tabla += '<th>Nombre completo</th>';
-			tabla += '<th>Directorio personal</th>';
-			tabla += '<th>Grado</th>';
-			tabla += '<th>Nombre de usuario</th>';
-			tabla += '</tr>';
-			tabla += '</thead>';
-			tabla += '<tbody>';
-
-			
-			for(var k = 0; k < json.length; k++) {
-				var alumno = json[k];
-
-				tabla += '<tr>';
-				tabla += '<td>'+alumno.uidNumber+'</td>';
-				tabla += '<td>'+alumno.cn+'</td>';
-				tabla += '<td>'+alumno.homeDirectory+'</td>';
-				tabla += '<td>'+alumno.info+'</td>';
-				tabla += '<td>'+alumno.uid+'</td>';
-				tabla += '</tr>';
-			}
-
-			tabla += '</tbody>';
-			tabla += '</table>';
-
-			
-					
-			$(tabla).appendTo('#tabla-cont');
-
+			imprimirTabla('#tabla-cont', json);
 		});
 	});
 
