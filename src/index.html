@@ -15,6 +15,24 @@
 
 	function activarFiltro(filtro) {
 		filtroActivo = filtro;
+
+		var texto;
+		if(filtro == 'cn') {
+			$('#busquedaAlumno').prop('disabled', false);
+			texto = "Nombre completo: ";
+		} else if(filtro == 'info') {
+			$('#busquedaAlumno').prop('disabled', false);
+			texto = "Grado: ";
+		} else if(filtro == 'uid') {
+			$('#busquedaAlumno').prop('disabled', false);
+			texto = "Nombre usuario: ";
+		} else if(filtro == "reset") {
+			$('#busquedaAlumno').prop('disabled', true);
+			texto = "Filtro:  ";
+		}
+
+		$('#busquedaAlumno').val('');
+		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
 	function imprimirTabla(idTabla, json) {
@@ -100,29 +118,49 @@
 		return json;
 	}
 
+	function habilitarGui(tipo) {
+
+		$('#inicio').hide();
+
+		$('#modo-'+tipo).show();
+		if(tipo == 'visualizacion') {
+			var exec = require('child_process').exec;
+
+			$('#busquedaAlumno').keypress(function(e) {
+				if(e.which == 13) {
+					var val = $('#busquedaAlumno').val();
+					buscarConFiltro(val, function(ret) {
+						$('#tabla-cont').empty();
+						var json = ldap2json(ret);
+
+						imprimirTabla('#tabla-cont', json);
+					});
+				}
+			});
+
+
+			buscarTodos(function(ret) {
+				$('#tabla-cont').empty();
+				var json = ldap2json(ret);
+
+				imprimirTabla('#tabla-cont', json);
+			});
+
+		} else if (tipo == 'edicion') {
+
+		}
+	}
+
 	$(function() {
-		var exec = require('child_process').exec;
 
-		$('#busquedaAlumno').keypress(function(e) {
-			if(e.which == 13) {
-
-				var val = $('#busquedaAlumno').val();
-				buscarConFiltro(val, function(ret) {
-					$('#tabla-cont').empty();
-					var json = ldap2json(ret);
-
-					imprimirTabla('#tabla-cont', json);
-				});
-			}
+		$('#btnVer').on('click', function() {
+			habilitarGui('visualizacion');
 		});
 
-
-		buscarTodos(function(ret) {
-			$('#tabla-cont').empty();
-			var json = ldap2json(ret);
-
-			imprimirTabla('#tabla-cont', json);
+		$('#btnEditar').on('click', function() {
+			habilitarGui('edicion');
 		});
+		
 	});
 
 	</script>
@@ -132,16 +170,32 @@
 
 	<h1>Matr&iacute;cula de alumnos</h1>
 	<br>
-	<div class="input-group input-group-lg">
- 		<div class="input-group-btn">
-			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Filtro: <span class="caret"></span></button>
-			<ul class="dropdown-menu">
-				<li><a onclick="activarFiltro('cn');">Nombre</a></li>
-				<li><a onclick="activarFiltro('info');">Grado</a></li>
-				<li><a onclick="activarFiltro('uid');">Nombre de usuario</a></li>
-        		</ul>
+	<div id="inicio">
+
+		<div class="btn-group" role="group" aria-label="...">
+			<button type="button" class="btn btn-danger" id="btnVer">Visualizar</button>
+			<button type="button" class="btn btn-danger" id="btnEditar">Editar</button>
 		</div>
-		<input id="busquedaAlumno" type="text" class="form-control" placeholder="Buscar..." aria-describedby="sizing-addon1" autofocus>
+	</div>
+
+	<div id="modo-visualizacion" style="display:none;">
+		<div class="input-group input-group-lg">
+ 			<div class="input-group-btn">
+				<button type="button" class="btn btn-default dropdown-toggle" id="filtro-selector" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Filtro: <span class="caret"></span></button>
+				<ul class="dropdown-menu">
+					<li><a onclick="activarFiltro('reset');">Reset</a></li>
+					<li role="separator" class="divider"></li>
+					<li><a onclick="activarFiltro('cn');">Nombre</a></li>
+					<li><a onclick="activarFiltro('info');">Grado</a></li>
+					<li><a onclick="activarFiltro('uid');">Nombre de usuario</a></li>
+        			</ul>
+			</div>
+			<input id="busquedaAlumno" type="text" class="form-control" placeholder="Buscar..." aria-describedby="sizing-addon1" autofocus disabled>
+		</div>
+	</div>
+
+	<div id="modo-edicion" style="display:none;">
+
 	</div>
 	<br>
 	<div id="tabla-cont">
