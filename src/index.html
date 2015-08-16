@@ -154,7 +154,7 @@
 
 	function buscarPorCategoria(categoria, cb) { 
 		var exec = require('child_process').exec;
-		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
+		var cmd = 'ldapsearch -xLLL -S info -b "ou=People,dc=primariadigital,dc=local" ';
 		cmd += categoria;
 		cmd += ' | grep -v dn';
 
@@ -169,8 +169,6 @@
 		cmd += filtroActivo+'=*'+val+'* ';
 		cmd += 'cn homeDirectory info uid uidNumber';
 		cmd += '| grep -v dn';
-
-		console.log(cmd);
 
 		exec(cmd, function(error, stdout, stderr) {
 			cb(stdout);
