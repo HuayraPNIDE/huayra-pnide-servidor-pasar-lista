@@ -35,6 +35,89 @@
 		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
+	function crearLdif(cn, uid, grado, pass) {
+		var fs = require('fs');
+
+		var contenidoLdif = 'dn: cn='+cn+',ou=People,dc=primariadigital,dc=local\n';
+		contenidoLdif += 'cn: '+cn+'\n';
+		contenidoLdif += 'gidNumber: 500\n';
+		contenidoLdif += 'givenName: '+cn+'\n';
+		contenidoLdif += 'homeDirectory: /fs/'+uid+'\n';
+		contenidoLdif += 'objectClass: inetOrgPerson\n';
+		contenidoLdif += 'objectClass: extensibleObject\n';
+		contenidoLdif += 'objectClass: posixAccount\n'
+		contenidoLdif += 'objectClass: top\n';
+		contenidoLdif += 'info: '+grado+'\n';
+		contenidoLdif += 'sn: '+cn+'\n';
+		contenidoLdif += 'uid: '+uid+'\n';
+		contenidoLdif += 'uidNumber: 1005\n';
+		contenidoLdif += 'userpassword: {MD5}ICy5YqxZB1uWSwcVLSNLcA==\n';
+
+		fs.writeFileSync('/tmp/nu', contenidoLdif);
+
+	
+	}
+
+	function agregarAlumno() {
+
+		var cn = $('#cajaNombre').val();
+		var uid = $('#cajaNombreusuario').val();
+		var grado = $('#cajaGrado').val();
+		var pass = $('#cajaPass').val();
+
+		if(!cn || !uid || !grado || !pass) {
+			alert('No se suministro todos los datos del alumno');
+			return ;
+		}
+
+		var archivoLdif = crearLdif(cn, uid, grado, pass);
+	}
+
+	function editarGrado(grado) {
+		filtroActivo = 'info';
+		buscarConFiltro(grado, function(ret) {
+
+			$('#tabla-cont').empty();
+			var json = ldap2json(ret, 'cn');
+
+			$('#btnAgregarAlumnos').on('click', function() {
+				$('#agregar').show();
+				$('#btnAgregarAlumnos').hide();
+			});
+
+
+			$('#btnAgregarAlumnos').show();
+			imprimirTabla('#tabla-cont', json);
+		});
+	}
+
+	function imprimirGrados(idTabla, json) {
+
+		var tabla = '<table class="table table-striped">';
+
+		tabla += '<thead>';
+		tabla += '<tr>';
+		tabla += '<th>#</th>';
+		tabla += '<th>Grado</th>';
+		tabla += '</tr>';
+		tabla += '</thead>';
+		tabla += '<tbody>';
+
+		for(var k = 0; k < json.length; k++) {
+			var grado = json[k].info;
+
+			tabla += "<tr onclick=editarGrado('"+grado+"')>";
+			tabla += '<td>'+k+'</td>';
+			tabla += '<td>'+grado+'</td>';
+			tabla += '</tr>';
+		}
+
+		tabla += '</tbody>';
+		tabla += '</table>';
+
+		$(tabla).appendTo(idTabla);
+	}
+
 	function imprimirTabla(idTabla, json) {
 
 		var tabla = '<table class="table table-striped">';
@@ -69,12 +152,25 @@
 		$(tabla).appendTo(idTabla);
 	}
 
+	function buscarPorCategoria(categoria, cb) { 
+		var exec = require('child_process').exec;
+		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
+		cmd += categoria;
+		cmd += ' | grep -v dn';
+
+		exec(cmd, function(error, stdout, stderr) {
+			cb(stdout);
+		});
+	}
+
 	function buscarConFiltro(val, cb) {
 		var exec = require('child_process').exec;
 		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
 		cmd += filtroActivo+'=*'+val+'* ';
 		cmd += 'cn homeDirectory info uid uidNumber';
 		cmd += '| grep -v dn';
+
+		console.log(cmd);
 
 		exec(cmd, function(error, stdout, stderr) {
 			cb(stdout);
@@ -84,14 +180,14 @@
 	function buscarTodos(cb) {
 
 		var exec = require('child_process').exec;
-		var cmd = 'ldapsearch -xLLL -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
+		var cmd = 'ldapsearch -xLLL -S info -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
 
 		exec(cmd, function(error, stdout, stderr) {
 			cb(stdout);
 		});
 	}
 
-	function ldap2json(ldapstring) {
+	function ldap2json(ldapstring, valorInicial) {
 
 		var json = [];
 		var jsonIter = 0;
@@ -108,7 +204,7 @@
 			var llave = lv[0].trim();
 			var valor = lv[1].trim();
 
-			if(llave == 'cn') {
+			if(llave == valorInicial) {
 				jsonIter = json.push({}) - 1;
 			}
 
@@ -131,7 +227,7 @@
 					var val = $('#busquedaAlumno').val();
 					buscarConFiltro(val, function(ret) {
 						$('#tabla-cont').empty();
-						var json = ldap2json(ret);
+						var json = ldap2json(ret, 'cn');
 
 						imprimirTabla('#tabla-cont', json);
 					});
@@ -141,12 +237,26 @@
 
 			buscarTodos(function(ret) {
 				$('#tabla-cont').empty();
-				var json = ldap2json(ret);
+				var json = ldap2json(ret, 'cn');
 
 				imprimirTabla('#tabla-cont', json);
 			});
 
 		} else if (tipo == 'edicion') {
+			buscarPorCategoria('info', function(ret) {
+				var json = ldap2json(ret, 'info');
+
+				var grados = [];
+
+				for(var k = 0; k < json.length; k++) {
+					var grado = json[k].info;
+
+					grados.push(grado);
+				}
+
+				imprimirGrados('#tabla-cont', json);
+			});
+
 
 		}
 	}
@@ -195,8 +305,31 @@
 	</div>
 
 	<div id="modo-edicion" style="display:none;">
+		<button type="button" class="btn btn-default btn-lg" id="btnAgregarAlumnos" style="display: none">
+			<span class="glyphicon glyphicon-plus" style="vertical-align:middle"></span> Agregar nuevos alumnos
+		</button>
 
+		<div id="agregar" style="display:none;">
+			<div class="row">
+				<div class="col-xs-3">
+					<input id="cajaNombre" type="text" class="form-control" placeholder="Nombre completo" aria-describedby="sizing-addon1">
+				</div>
+				<div class="col-xs-3">
+					<input id="cajaNombreusuario" type="text" class="form-control" placeholder="Nombre usuario" aria-describedby="sizing-addon1">
+				</div>
+				<div class="col-xs-3">
+					<input id="cajaGrado" type="text" class="form-control" aria-describedby="sizing-addon1">
+				</div>
+				<div class="col-xs-3">
+					<input id="cajaPass" type="text" class="form-control" aria-describedby="sizing-addon1">
+				</div>
+				<div class="col-xs-2">
+					<button type="button" class="btn btn-success" id="btnAgregar" onclick="agregarAlumno()">Agregar</button>
+				</div>
+			</div>
+		</div>
 	</div>
+	<br>
 	<br>
 	<div id="tabla-cont">
 	</div>
