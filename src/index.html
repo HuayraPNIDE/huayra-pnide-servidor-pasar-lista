@@ -11,8 +11,58 @@
 
 	<script type="text/javascript">
 
-	function activarFiltro(filtro) {
+	var filtroActivo;
 
+	function activarFiltro(filtro) {
+		filtroActivo = filtro;
+	}
+
+	function buscarConFiltro(val) {
+		var exec = require('child_process').exec;
+		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
+		cmd += filtroActivo+'=*'+val+'* ';
+		cmd += 'cn homeDirectory info uid uidNumber';
+		cmd += '| grep -v dn';
+
+		//console.log(cmd);
+
+		exec(cmd, function(error, stdout, stderr) {
+
+			$('#tabla-cont').empty();
+			var json = ldap2json(stdout);
+
+			var tabla = '<table class="table table-striped">';
+
+			tabla += '<thead>';
+			tabla += '<tr>';
+			tabla += '<th># Usuario</th>';
+			tabla += '<th>Nombre completo</th>';
+			tabla += '<th>Directorio personal</th>';
+			tabla += '<th>Grado</th>';
+			tabla += '<th>Nombre de usuario</th>';
+			tabla += '</tr>';
+			tabla += '</thead>';
+			tabla += '<tbody>';
+
+			
+			for(var k = 0; k < json.length; k++) {
+				var alumno = json[k];
+
+				tabla += '<tr>';
+				tabla += '<td>'+alumno.uidNumber+'</td>';
+				tabla += '<td>'+alumno.cn+'</td>';
+				tabla += '<td>'+alumno.homeDirectory+'</td>';
+				tabla += '<td>'+alumno.info+'</td>';
+				tabla += '<td>'+alumno.uid+'</td>';
+				tabla += '</tr>';
+			}
+
+			tabla += '</tbody>';
+			tabla += '</table>';
+
+			$(tabla).appendTo('#tabla-cont');
+
+		});
 	}
 
 	function ldap2json(ldapstring) {
@@ -43,8 +93,20 @@
 	}
 
 	$(function() {
-		console.log("Buscando");
 		var exec = require('child_process').exec;
+
+		$('#busquedaAlumno').keypress(function(e) {
+			if(e.which == 13) {
+
+				var val = $('#busquedaAlumno').val();
+				var ret = buscarConFiltro(val);
+
+				//console.log(ret);
+			}
+		});
+
+
+		console.log("Buscando");
 		var cmd = 'ldapsearch -xLLL -b ou=People,dc=primariadigital,dc=local cn homeDirectory info uid uidNumber | grep -v dn';
 
 		exec(cmd, function(error, stdout, stderr) {
@@ -99,9 +161,9 @@
  		<div class="input-group-btn">
 			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Filtro: <span class="caret"></span></button>
 			<ul class="dropdown-menu">
-				<li><a onclick="activarFiltro('nombre');">Nombre</a></li>
-				<li><a onclick="activarFiltro('grado');">Grado</a></li>
-				<li><a onclick="activarFiltro('usuario');">Nombre de usuario</a></li>
+				<li><a onclick="activarFiltro('cn');">Nombre</a></li>
+				<li><a onclick="activarFiltro('info');">Grado</a></li>
+				<li><a onclick="activarFiltro('uid');">Nombre de usuario</a></li>
         		</ul>
 		</div>
 		<input id="busquedaAlumno" type="text" class="form-control" placeholder="Buscar..." aria-describedby="sizing-addon1" autofocus>
