@@ -268,6 +268,15 @@
 		$('#btnEditar').on('click', function() {
 			habilitarGui('edicion');
 		});
+
+		// Load native UI library
+		var ngui = require('nw.gui');
+
+		// Get the current window
+		var nwin = ngui.Window.get();
+
+		nwin.show();
+		nwin.maximize();
 		
 	});
 
@@ -310,18 +319,18 @@
 		<div id="agregar" style="display:none;">
 			<div class="row">
 				<div class="col-xs-3">
-					<input id="cajaNombre" type="text" class="form-control" placeholder="Nombre completo" aria-describedby="sizing-addon1">
+					<input id="cajaNombre" type="text" class="form-control" placeholder="Nombre completo">
 				</div>
 				<div class="col-xs-3">
-					<input id="cajaNombreusuario" type="text" class="form-control" placeholder="Nombre usuario" aria-describedby="sizing-addon1">
-				</div>
-				<div class="col-xs-3">
-					<input id="cajaGrado" type="text" class="form-control" aria-describedby="sizing-addon1">
-				</div>
-				<div class="col-xs-3">
-					<input id="cajaPass" type="text" class="form-control" aria-describedby="sizing-addon1">
+					<input id="cajaNombreusuario" type="text" class="form-control" placeholder="Nombre usuario">
 				</div>
 				<div class="col-xs-2">
+					<input id="cajaGrado" type="text" class="form-control">
+				</div>
+				<div class="col-xs-3">
+					<input id="cajaPass" type="password" class="form-control" placeholder="Password">
+				</div>
+				<div class="col-xs-1">
 					<button type="button" class="btn btn-success" id="btnAgregar" onclick="agregarAlumno()">Agregar</button>
 				</div>
 			</div>
