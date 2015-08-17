@@ -62,6 +62,15 @@
 				contenidoLdif += 'userpassword: {MD5}ICy5YqxZB1uWSwcVLSNLcA==\n';
 
 				fs.writeFileSync('/tmp/nu', contenidoLdif);
+
+
+				var exec = require('child_process').exec;
+				//var cmd = 'ldapsearch -xLLL -S '+categoria+' -b "ou=People,dc=primariadigital,dc=local" ';
+				var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f /tmp/nu';
+
+				exec(cmd, function(error, stdout, stderr) {
+					console.log(stdout);
+				});
 		});
 
 	
