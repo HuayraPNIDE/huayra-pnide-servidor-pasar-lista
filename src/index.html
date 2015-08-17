@@ -38,22 +38,31 @@
 	function crearLdif(cn, uid, grado, pass) {
 		var fs = require('fs');
 
-		var contenidoLdif = 'dn: cn='+cn+',ou=People,dc=primariadigital,dc=local\n';
-		contenidoLdif += 'cn: '+cn+'\n';
-		contenidoLdif += 'gidNumber: 500\n';
-		contenidoLdif += 'givenName: '+cn+'\n';
-		contenidoLdif += 'homeDirectory: /fs/'+uid+'\n';
-		contenidoLdif += 'objectClass: inetOrgPerson\n';
-		contenidoLdif += 'objectClass: extensibleObject\n';
-		contenidoLdif += 'objectClass: posixAccount\n'
-		contenidoLdif += 'objectClass: top\n';
-		contenidoLdif += 'info: '+grado+'\n';
-		contenidoLdif += 'sn: '+cn+'\n';
-		contenidoLdif += 'uid: '+uid+'\n';
-		contenidoLdif += 'uidNumber: 1005\n';
-		contenidoLdif += 'userpassword: {MD5}ICy5YqxZB1uWSwcVLSNLcA==\n';
+		buscarPorCategoria('uidNumber', function(ret) {
+				var json = ldap2json(ret, 'uidNumber');
 
-		fs.writeFileSync('/tmp/nu', contenidoLdif);
+				var ultimoUidNumber = json[json.length - 1].uidNumber;
+				var proximoUidNumber = parseInt(ultimoUidNumber) + 1;
+
+				console.log(ultimoUidNumber);
+
+				var contenidoLdif = 'dn: cn='+cn+',ou=People,dc=primariadigital,dc=local\n';
+				contenidoLdif += 'cn: '+cn+'\n';
+				contenidoLdif += 'gidNumber: 500\n';
+				contenidoLdif += 'givenName: '+cn+'\n';
+				contenidoLdif += 'homeDirectory: /fs/'+uid+'\n';
+				contenidoLdif += 'objectClass: inetOrgPerson\n';
+				contenidoLdif += 'objectClass: extensibleObject\n';
+				contenidoLdif += 'objectClass: posixAccount\n'
+				contenidoLdif += 'objectClass: top\n';
+				contenidoLdif += 'info: '+grado+'\n';
+				contenidoLdif += 'sn: '+cn+'\n';
+				contenidoLdif += 'uid: '+uid+'\n';
+				contenidoLdif += 'uidNumber: '+proximoUidNumber+'\n';
+				contenidoLdif += 'userpassword: {MD5}ICy5YqxZB1uWSwcVLSNLcA==\n';
+
+				fs.writeFileSync('/tmp/nu', contenidoLdif);
+		});
 
 	
 	}
@@ -71,6 +80,22 @@
 		}
 
 		var archivoLdif = crearLdif(cn, uid, grado, pass);
+
+		buscarConFiltro(grado, function(ret) {
+
+			$('#tabla-cont').empty();
+			var json = ldap2json(ret, 'cn');
+
+			$('#btnAgregarAlumnos').on('click', function() {
+				$('#agregar').show();
+				$('#btnAgregarAlumnos').hide();
+			});
+
+
+			imprimirTabla('#tabla-cont', json);
+		});
+
+
 	}
 
 	function editarGrado(grado) {
@@ -154,7 +179,7 @@
 
 	function buscarPorCategoria(categoria, cb) { 
 		var exec = require('child_process').exec;
-		var cmd = 'ldapsearch -xLLL -S info -b "ou=People,dc=primariadigital,dc=local" ';
+		var cmd = 'ldapsearch -xLLL -S '+categoria+' -b "ou=People,dc=primariadigital,dc=local" ';
 		cmd += categoria;
 		cmd += ' | grep -v dn';
 
@@ -343,4 +368,3 @@
 
 </body>
 </html>
-
