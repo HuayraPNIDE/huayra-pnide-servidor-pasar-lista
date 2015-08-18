@@ -100,36 +100,50 @@
 
 		if(!cn || !uid || !grado || !pass) {
 			alert('No se suministro todos los datos del alumno');
-			return ;
+			return;
 		}
 
 		//El infierno de los callbacks
-		buscarPorCategoria('uidNumber', function(ret) { //Traigo ultimo UID Number
-			var json = ldap2json(ret, 'uidNumber');
+		buscarAlumno(uid, function(ret) {
+			var json = ldap2json(ret, 'cn');
+			if(ret) {
+				alert("Ya existe un alumno con ese nombre de usuario\nEn "+ json[0].info);
+				return;
+			}
+			buscarPorCategoria('uidNumber', function(ret) { //Traigo ultimo UID Number
+				var json = ldap2json(ret, 'uidNumber');
 
-			var ultimoUidNumber = json[json.length - 1].uidNumber;
-			var proximoUidNumber = parseInt(ultimoUidNumber) + 1;
+				var ultimoUidNumber;
+				if(!json.length) {
+					ultimoUidNumber = 1000;
+				} else {
+					ultimoUidNumber = json[json.length - 1].uidNumber;
+				}
 
-			var archivoLdif = crearLdif(cn, uid, proximoUidNumber, grado, pass); 
 
-			var exec = require('child_process').exec;
-			var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
+				var proximoUidNumber = parseInt(ultimoUidNumber) + 1;
 
-			exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
+				var archivoLdif = crearLdif(cn, uid, proximoUidNumber, grado, pass); 
 
-				buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
+				var exec = require('child_process').exec;
+				var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
 
-					$('#tabla-cont').empty();
-					var json = ldap2json(ret, 'cn');
-					console.log(json);
+				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
 
-					$('#btnAgregarAlumnos').on('click', function() {
-						$('#agregar').show();
-						$('#btnAgregarAlumnos').hide();
+					buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
+
+						$('#tabla-cont').empty();
+						var json = ldap2json(ret, 'cn');
+						console.log(json);
+
+						$('#btnAgregarAlumnos').on('click', function() {
+							$('#agregar').show();
+							$('#btnAgregarAlumnos').hide();
+						});
+
+						var opts = {editar: true};
+						imprimirTabla('#tabla-cont', json, opts);
 					});
-
-					var opts = {editar: true};
-					imprimirTabla('#tabla-cont', json, opts);
 				});
 			});
 		});
@@ -222,7 +236,7 @@
 
 				var nombre = alumno.cn;
 				var grado = alumno.info;
-				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\">Eliminar</td>";
+				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</td>";
 
 			}
 			tabla += '</tr>';
@@ -232,6 +246,17 @@
 		tabla += '</table>';
 
 		$(tabla).appendTo(idTabla);
+	}
+
+	function buscarAlumno(uid, cb) {
+		var exec = require('child_process').exec;
+		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
+		cmd += 'uid='+uid;
+		cmd += ' | grep -v dn';
+
+		exec(cmd, function(error, stdout, stderr) {
+			cb(stdout);
+		});
 	}
 
 	function buscarPorCategoria(categoria, cb) { 
