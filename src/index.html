@@ -46,7 +46,10 @@
 
 			var uidNumber = alumno.uidNumber;
 
+			$('#btnAgregarAlumnos').hide();
 			$('#tabla-cont').hide();
+			$('#agregar').hide();
+
 			$('#modo-edicion > #editar').show()
 
 			$('#modo-edicion > #editar').find('#cajaEditarNombre').val(alumno.cn);
@@ -116,6 +119,8 @@
 
 					var opts = {editar: true};
 					imprimirTabla('#tabla-cont', json, opts);
+					$('#tabla-cont').show();
+					$('#btnAgregarAlumnos').show();
 				});
 			});
 		});
@@ -142,6 +147,7 @@
 				var opts = {editar: true};
 
 				imprimirTabla('#tabla-cont', json, opts);
+				$('#tabla-cont').show();
 			});
 
 		});
@@ -230,6 +236,8 @@
 
 						var opts = {editar: true};
 						imprimirTabla('#tabla-cont', json, opts);
+						$('#tabla-cont').show();
+						$('#btnAgregarAlumnos').show();
 					});
 				});
 			});
