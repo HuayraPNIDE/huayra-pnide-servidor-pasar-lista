@@ -38,6 +38,33 @@
 		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
+	function eliminarAlumno(cn, grado) {
+
+		var exec = require('child_process').exec;
+		var cmd = 'ldapdelete -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
+		cmd += '\"cn='+cn+',ou=People,dc=primariadigital,dc=local\"';
+
+		console.log(cmd);
+
+		exec(cmd, function(error, stdout, stderr) { //Elimino la entrada
+			buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
+
+				$('#tabla-cont').empty();
+				var json = ldap2json(ret, 'cn');
+
+				$('#btnAgregarAlumnos').on('click', function() {
+					$('#agregar').show();
+					$('#btnAgregarAlumnos').hide();
+				});
+
+				var opts = {editar: true};
+
+				imprimirTabla('#tabla-cont', json, opts);
+			});
+
+		});
+	}
+
 	function crearLdif(cn, uid, uidNumber, grado, pass) {
 
 		var nombreArchivo = "/tmp/nu";
@@ -94,14 +121,15 @@
 
 					$('#tabla-cont').empty();
 					var json = ldap2json(ret, 'cn');
+					console.log(json);
 
 					$('#btnAgregarAlumnos').on('click', function() {
 						$('#agregar').show();
 						$('#btnAgregarAlumnos').hide();
 					});
 
-
-					imprimirTabla('#tabla-cont', json);
+					var opts = {editar: true};
+					imprimirTabla('#tabla-cont', json, opts);
 				});
 			});
 		});
@@ -109,6 +137,9 @@
 	}
 
 	function editarGrado(grado) {
+
+		$('#btnAgregarGrado').hide();
+
 		filtroActivo = 'info';
 		buscarConFiltro(grado, function(ret) {
 
@@ -122,7 +153,9 @@
 
 
 			$('#btnAgregarAlumnos').show();
-			imprimirTabla('#tabla-cont', json);
+
+			var opts = {editar: true};
+			imprimirTabla('#tabla-cont', json, opts);
 		});
 	}
 
@@ -151,9 +184,12 @@
 		tabla += '</table>';
 
 		$(tabla).appendTo(idTabla);
+
 	}
 
-	function imprimirTabla(idTabla, json) {
+	function imprimirTabla(idTabla, json, opts) {
+
+
 
 		var tabla = '<table class="table table-striped">';
 
@@ -164,7 +200,9 @@
 		tabla += '<th>Directorio personal</th>';
 		tabla += '<th>Grado</th>';
 		tabla += '<th>Nombre de usuario</th>';
-		tabla += '<th>Acci&oacute;n</th>';
+		if(opts) {
+			tabla += '<th>Acci&oacute;n</th>';
+		}
 		tabla += '</tr>';
 		tabla += '</thead>';
 		tabla += '<tbody>';
@@ -179,7 +217,14 @@
 			tabla += '<td>'+alumno.homeDirectory+'</td>';
 			tabla += '<td>'+alumno.info+'</td>';
 			tabla += '<td>'+alumno.uid+'</td>';
-			tabla += '<td>eliminarAlumno('+alumno.uid+');</td>';
+
+			if(opts) {
+
+				var nombre = alumno.cn;
+				var grado = alumno.info;
+				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\">Eliminar</td>";
+
+			}
 			tabla += '</tr>';
 		}
 
@@ -278,6 +323,7 @@
 			});
 
 		} else if (tipo == 'edicion') {
+
 			buscarPorCategoria('info', function(ret) {
 				var json = ldap2json(ret, 'info');
 
@@ -290,9 +336,15 @@
 				}
 
 				imprimirGrados('#tabla-cont', json);
+
+				$('#btnAgregarGrado').on('click', function() {
+					$('#agregar').show();
+					$('#btnAgregarGrado').hide();
+					$('#tabla-cont').empty();
+				});
+
+				$('#btnAgregarGrado').show();
 			});
-
-
 		}
 	}
 
@@ -349,6 +401,10 @@
 	</div>
 
 	<div id="modo-edicion" style="display:none;">
+		<button type="button" class="btn btn-default btn-lg" id="btnAgregarGrado" style="display: none">
+			<span class="glyphicon glyphicon-plus" style="vertical-align:middle"></span> Agregar nuevo grado
+		</button>
+
 		<button type="button" class="btn btn-default btn-lg" id="btnAgregarAlumnos" style="display: none">
 			<span class="glyphicon glyphicon-plus" style="vertical-align:middle"></span> Agregar nuevos alumnos
 		</button>
@@ -362,7 +418,7 @@
 					<input id="cajaNombreusuario" type="text" class="form-control" placeholder="Nombre usuario">
 				</div>
 				<div class="col-xs-2">
-					<input id="cajaGrado" type="text" class="form-control">
+					<input id="cajaGrado" type="text" class="form-control" placeholder="Grado">
 				</div>
 				<div class="col-xs-3">
 					<input id="cajaPass" type="password" class="form-control" placeholder="Password">
