@@ -38,13 +38,95 @@
 		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
+	function editarAlumno(uid) {
+
+		buscarAlumno('uid', uid, function(ret) {
+			var json = ldap2json(ret, 'cn');
+			var alumno = json[0];
+
+			var uidNumber = alumno.uidNumber;
+
+			$('#tabla-cont').hide();
+			$('#modo-edicion > #editar').show()
+
+			$('#modo-edicion > #editar').find('#cajaEditarNombre').val(alumno.cn);
+			$('#modo-edicion > #editar').find('#cajaEditarNombreusuario').val(alumno.uid);
+			$('#modo-edicion > #editar').find('#cajaEditarGrado').val(alumno.info);
+
+			$('#modo-edicion > #editar').find('#btnAgregarEdicion').on('click', function() {
+
+				var cn = $('#modo-edicion > #editar').find('#cajaEditarNombre').val();
+				var uid = $('#modo-edicion > #editar').find('#cajaEditarNombreusuario').val();
+				var grado = $('#modo-edicion > #editar').find('#cajaEditarGrado').val();
+				var pass = $('#modo-edicion > #editar').find('#cajaEditarPass').val();
+
+				var nOpts = {	"cn": cn,
+						"uid": uid,
+						"grado": grado,
+						"pass": pass
+				};
+
+				agregarEdicionAlumno(alumno, nOpts);
+			});
+
+		});
+	}
+
+	function agregarEdicionAlumno(alumno, nOpts) {
+
+		if(!nOpts.cn || !nOpts.uid || !nOpts.grado || !nOpts.pass) {
+			alert('No se suministro todos los datos del alumno');
+			return;
+		}
+
+
+		eliminarAlumno(alumno.cn, alumno.info); //Elimino los datos viejos del alumno
+
+		buscarAlumno('uid', nOpts.uid, function(ret) {
+			var json = ldap2json(ret, 'cn');
+			if(ret) {
+				var errMsj = "Ya existe un alumno con ese nombre de usuario\n\n";
+				errMsj += "Nombre: "+json[0].cn+"\n";
+				errMsj += "Nombre usuario: "+json[0].uid+"\n";
+				errMsj += "Grado: "+json[0].info+"\n";
+
+				alert(errMsj);
+				return;
+			}
+
+			var archivoLdif = crearLdif(nOpts.cn, nOpts.uid, alumno.uidNumber, nOpts.grado, nOpts.pass);
+
+			var exec = require('child_process').exec;
+			var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
+
+			exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
+
+				buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
+
+					$('#modo-edicion > #editar').hide()
+
+					$('#tabla-cont').empty();
+					var json = ldap2json(ret, 'cn');
+					console.log(json);
+
+					$('#btnAgregarAlumnos').on('click', function() {
+						$('#agregar').show();
+						$('#btnAgregarAlumnos').hide();
+					});
+
+					var opts = {editar: true};
+					imprimirTabla('#tabla-cont', json, opts);
+				});
+			});
+		});
+
+	}
+
 	function eliminarAlumno(cn, grado) {
 
 		var exec = require('child_process').exec;
 		var cmd = 'ldapdelete -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
 		cmd += '\"cn='+cn+',ou=People,dc=primariadigital,dc=local\"';
-
-		console.log(cmd);
 
 		exec(cmd, function(error, stdout, stderr) { //Elimino la entrada
 			buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
@@ -104,10 +186,15 @@
 		}
 
 		//El infierno de los callbacks
-		buscarAlumno(uid, function(ret) {
+		buscarAlumno('uid', uid, function(ret) {
 			var json = ldap2json(ret, 'cn');
 			if(ret) {
-				alert("Ya existe un alumno con ese nombre de usuario\nEn "+ json[0].info);
+				var errMsj = "Ya existe un alumno con ese nombre de usuario\n\n";
+				errMsj += "Nombre: "+json[0].cn+"\n";
+				errMsj += "Nombre usuario: "+json[0].uid+"\n";
+				errMsj += "Grado: "+json[0].info+"\n";
+
+				alert(errMsj);
 				return;
 			}
 			buscarPorCategoria('uidNumber', function(ret) { //Traigo ultimo UID Number
@@ -236,7 +323,8 @@
 
 				var nombre = alumno.cn;
 				var grado = alumno.info;
-				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</td>";
+				//tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</td>";
+				tabla += "<td onclick=\"editarAlumno('"+alumno.uid+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Editar</td>";
 
 			}
 			tabla += '</tr>';
@@ -248,10 +336,11 @@
 		$(tabla).appendTo(idTabla);
 	}
 
-	function buscarAlumno(uid, cb) {
+
+	function buscarAlumno(llave, val, cb) {
 		var exec = require('child_process').exec;
 		var cmd = 'ldapsearch -xLLL -b "ou=People,dc=primariadigital,dc=local" ';
-		cmd += 'uid='+uid;
+		cmd += llave+'='+val;
 		cmd += ' | grep -v dn';
 
 		exec(cmd, function(error, stdout, stderr) {
@@ -450,6 +539,29 @@
 				</div>
 				<div class="col-xs-1">
 					<button type="button" class="btn btn-success" id="btnAgregar" onclick="agregarAlumno()">Agregar</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="editar" style="display:none;">
+			<br>
+			<h2>Editar alumno</h2>
+			<br>
+			<div class="row">
+				<div class="col-xs-3">
+					<input id="cajaEditarNombre" type="text" class="form-control">
+				</div>
+				<div class="col-xs-3">
+					<input id="cajaEditarNombreusuario" type="text" class="form-control">
+				</div>
+				<div class="col-xs-2">
+					<input id="cajaEditarGrado" type="text" class="form-control">
+				</div>
+				<div class="col-xs-2">
+					<input id="cajaEditarPass" type="text" class="form-control">
+				</div>
+				<div class="col-xs-1">
+					<button type="button" class="btn btn-success" id="btnAgregarEdicion">Agregar edicion</button>
 				</div>
 			</div>
 		</div>
