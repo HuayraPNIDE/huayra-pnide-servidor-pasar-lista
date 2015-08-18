@@ -13,6 +13,9 @@
 
 	var filtroActivo;
 
+	var md5 = require('md5');
+	console.log(md5('123'));
+
 	function activarFiltro(filtro) {
 		filtroActivo = filtro;
 
@@ -65,7 +68,7 @@
 
 		var cn = $('#cajaNombre').val();
 		var uid = $('#cajaNombreusuario').val();
-		var grado = $('#cajaGrado').val();
+		var grado = $('#cajaGrado').val().toUpperCase();
 		var pass = $('#cajaPass').val();
 
 		if(!cn || !uid || !grado || !pass) {
@@ -161,6 +164,7 @@
 		tabla += '<th>Directorio personal</th>';
 		tabla += '<th>Grado</th>';
 		tabla += '<th>Nombre de usuario</th>';
+		tabla += '<th>Acci&oacute;n</th>';
 		tabla += '</tr>';
 		tabla += '</thead>';
 		tabla += '<tbody>';
@@ -175,6 +179,7 @@
 			tabla += '<td>'+alumno.homeDirectory+'</td>';
 			tabla += '<td>'+alumno.info+'</td>';
 			tabla += '<td>'+alumno.uid+'</td>';
+			tabla += '<td>eliminarAlumno('+alumno.uid+');</td>';
 			tabla += '</tr>';
 		}
 
