@@ -323,6 +323,7 @@
 		tabla += '<th>Nombre de usuario</th>';
 		if(opts) {
 			tabla += '<th>Acci&oacute;n</th>';
+			tabla += '<th>Eliminar</th>';
 		}
 		tabla += '</tr>';
 		tabla += '</thead>';
@@ -343,8 +344,8 @@
 
 				var nombre = alumno.cn;
 				var grado = alumno.info;
-				//tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</td>";
-				tabla += "<td onclick=\"editarAlumno('"+alumno.uid+"')\"><span class=\"glyphicon glyphicon-remove\"></span> Editar</td>";
+				tabla += "<td onclick=\"editarAlumno('"+alumno.uid+"')\"><a href=\"#\" style=\"text-decoration: none\"><span class=\"glyphicon glyphicon-th-list\"></span> Editar</a></td>";
+				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><a href=\"#\" style=\"text-decoration: none\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</a></td>";
 
 			}
 			tabla += '</tr>';
@@ -430,10 +431,11 @@
 
 	function habilitarGui(tipo) {
 
-		$('#inicio').hide();
 
-		$('#modo-'+tipo).show();
 		if(tipo == 'visualizacion') {
+			$('#inicio').hide();
+			$('#modo-'+tipo).show();
+
 			var exec = require('child_process').exec;
 
 			$('#busquedaAlumno').keypress(function(e) {
@@ -454,9 +456,12 @@
 				var json = ldap2json(ret, 'cn');
 
 				imprimirTabla('#tabla-cont', json);
+				$('#tabla-cont').show();
 			});
 
 		} else if (tipo == 'edicion') {
+			$('#inicio').hide();
+			$('#modo-'+tipo).show();
 
 			buscarPorCategoria('info', function(ret) {
 				var json = ldap2json(ret, 'info');
@@ -469,6 +474,7 @@
 					grados.push(grado);
 				}
 
+				$('#tabla-cont').empty();
 				imprimirGrados('#tabla-cont', json);
 
 				$('#btnAgregarGrado').on('click', function() {
@@ -478,11 +484,28 @@
 				});
 
 				$('#btnAgregarGrado').show();
+				$('#tabla-cont').show();
 			});
+		} else if (tipo == 'inicio') {
+
+			$('#agregar').hide();
+			$('#modo-visualizacion').hide();
+			$('#modo-edicion').hide();
+			$('#modo-edicion > #editar').hide()
+
+			$('#btnAgregarAlumnos').hide();
+
+			$('#tabla-cont').hide();
+
+			$('#inicio').show();
 		}
 	}
 
 	$(function() {
+
+		$('#btnInicio').on('click', function() {
+			habilitarGui('inicio');
+		});
 
 		$('#btnVer').on('click', function() {
 			habilitarGui('visualizacion');
@@ -508,7 +531,7 @@
 </head>
 <body>
 
-	<h1>Matr&iacute;cula de alumnos</h1>
+	<h1>Matr&iacute;cula de alumnos - <a href="#"><span id="btnInicio" class="glyphicon glyphicon-pencil"></span></a></h1>
 	<br>
 	<div id="inicio">
 
