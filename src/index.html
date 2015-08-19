@@ -32,6 +32,14 @@
 		} else if(filtro == "reset") {
 			$('#busquedaAlumno').prop('disabled', true);
 			texto = "Filtro:  ";
+
+			buscarTodos(function(ret) {
+				$('#tabla-cont').empty();
+				var json = ldap2json(ret, 'cn');
+
+				imprimirTabla('#tabla-cont', json);
+			});
+
 		}
 
 		$('#busquedaAlumno').val('');
