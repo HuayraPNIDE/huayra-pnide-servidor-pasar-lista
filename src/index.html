@@ -203,6 +203,7 @@
 				alert(errMsj);
 				return;
 			}
+
 			buscarPorCategoria('uidNumber', function(ret) { //Traigo ultimo UID Number
 				var json = ldap2json(ret, 'uidNumber');
 
@@ -223,9 +224,11 @@
 
 				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
 
+					filtroActivo = 'info';
 					buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
 
 						$('#tabla-cont').empty();
+						console.log(ret);
 						var json = ldap2json(ret, 'cn');
 						console.log(json);
 
@@ -236,8 +239,9 @@
 
 						var opts = {editar: true};
 						imprimirTabla('#tabla-cont', json, opts);
+
 						$('#tabla-cont').show();
-						$('#btnAgregarAlumnos').show();
+						$('#btnAgregarAlumnos').hide();
 					});
 				});
 			});
