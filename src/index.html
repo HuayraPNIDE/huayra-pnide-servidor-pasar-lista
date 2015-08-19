@@ -183,7 +183,7 @@
 
 		var cn = $('#cajaNombre').val();
 		var uid = $('#cajaNombreusuario').val();
-		var grado = $('#cajaGrado').val().toUpperCase();
+		var grado = $('#cajaGrado').val().toUpperCase().replace(/ /g,'');
 		var pass = $('#cajaPass').val();
 
 		if(!cn || !uid || !grado || !pass) {
