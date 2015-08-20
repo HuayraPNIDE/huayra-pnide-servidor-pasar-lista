@@ -64,11 +64,13 @@
 			$('#modo-edicion > #editar').find('#cajaEditarNombreusuario').val(alumno.uid);
 			$('#modo-edicion > #editar').find('#cajaEditarGrado').val(alumno.info);
 
+			$('#modo-edicion > #editar').find('#btnAgregarEdicion').off('click');
+
 			$('#modo-edicion > #editar').find('#btnAgregarEdicion').on('click', function() {
 
 				var cn = $('#modo-edicion > #editar').find('#cajaEditarNombre').val();
 				var uid = $('#modo-edicion > #editar').find('#cajaEditarNombreusuario').val();
-				var grado = $('#modo-edicion > #editar').find('#cajaEditarGrado').val();
+				var grado = $('#modo-edicion > #editar').find('#cajaEditarGrado').val().replace(/ /g,'');
 				var pass = $('#modo-edicion > #editar').find('#cajaEditarPass').val();
 
 				var nOpts = {	"cn": cn,
@@ -91,73 +93,70 @@
 		}
 
 
-		eliminarAlumno(alumno.cn, alumno.info); //Elimino los datos viejos del alumno
+		eliminarAlumno(alumno.uid, alumno.info, function(ret) { //Elimino los datos viejos del alumno
 
-		buscarAlumno('uid', nOpts.uid, function(ret) {
-			var json = ldap2json(ret, 'cn');
-			if(ret) {
-				var errMsj = "Ya existe un alumno con ese nombre de usuario\n\n";
-				errMsj += "Nombre: "+json[0].cn+"\n";
-				errMsj += "Nombre usuario: "+json[0].uid+"\n";
-				errMsj += "Grado: "+json[0].info+"\n";
+			buscarAlumno('uid', nOpts.uid, function(ret) {
+				var json = ldap2json(ret, 'cn');
+				if(ret) {
+					var errMsj = "Ya existe un alumno con ese nombre de usuario\n\n";
+					errMsj += "Nombre: "+json[0].cn+"\n";
+					errMsj += "Nombre usuario: "+json[0].uid+"\n";
+					errMsj += "Grado: "+json[0].info+"\n";
 
-				alert(errMsj);
-				return;
-			}
+					alert(errMsj);
+					return;
+				}
 
-			var archivoLdif = crearLdif(nOpts.cn, nOpts.uid, alumno.uidNumber, nOpts.grado, nOpts.pass);
-
-			var exec = require('child_process').exec;
-			var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
-
-			exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
-
-				buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
-
-					$('#modo-edicion > #editar').hide()
-
-					$('#tabla-cont').empty();
-					var json = ldap2json(ret, 'cn');
-					console.log(json);
-
-					$('#btnAgregarAlumnos').on('click', function() {
-						$('#agregar').show();
-						$('#btnAgregarAlumnos').hide();
+				//Creo alumno
+				var archivoLdif = crearLdif(nOpts.cn, nOpts.uid, alumno.uidNumber, nOpts.grado, nOpts.pass);
+	
+				var exec = require('child_process').exec;
+				var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
+				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
+	
+					buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
+	
+						$('#modo-edicion > #editar').hide()
+	
+						$('#tabla-cont').empty();
+						var json = ldap2json(ret, 'cn');
+	
+						$('#btnAgregarAlumnos').on('click', function() {
+							$('#agregar').show();
+							$('#btnAgregarAlumnos').hide();
+						});
+	
+						var opts = {editar: true};
+						imprimirTabla('#tabla-cont', json, opts);
+						$('#tabla-cont').show();
+						$('#btnAgregarAlumnos').show();
 					});
-
-					var opts = {editar: true};
-					imprimirTabla('#tabla-cont', json, opts);
-					$('#tabla-cont').show();
-					$('#btnAgregarAlumnos').show();
 				});
 			});
 		});
+	
+	}
+
+	function eliminarAlumnoSeg(uid, grado) {
+
+		if(!confirm("\u00BFDesea eliminar a "+uid+"?")) {
+			return;
+		}
+
+		eliminarAlumno(uid, grado);
 
 	}
 
-	function eliminarAlumno(cn, grado) {
+	function eliminarAlumno(uid, grado, cb) {
 
 		var exec = require('child_process').exec;
 		var cmd = 'ldapdelete -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
-		cmd += '\"cn='+cn+',ou=People,dc=primariadigital,dc=local\"';
+		cmd += '\"uid='+uid+',ou=People,dc=primariadigital,dc=local\"';
+
+		console.log('Voy a eliminar '+uid);
 
 		exec(cmd, function(error, stdout, stderr) { //Elimino la entrada
-			buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
-
-				$('#tabla-cont').empty();
-				var json = ldap2json(ret, 'cn');
-
-				$('#btnAgregarAlumnos').on('click', function() {
-					$('#agregar').show();
-					$('#btnAgregarAlumnos').hide();
-				});
-
-				var opts = {editar: true};
-
-				imprimirTabla('#tabla-cont', json, opts);
-				$('#tabla-cont').show();
-			});
-
+			cb(stdout);
 		});
 	}
 
@@ -167,7 +166,7 @@
 
 		var fs = require('fs');
 
-		var contenidoLdif = 'dn: cn='+cn+',ou=People,dc=primariadigital,dc=local\n';
+		var contenidoLdif = 'dn: uid='+uid+',ou=People,dc=primariadigital,dc=local\n';
 		contenidoLdif += 'cn: '+cn+'\n';
 		contenidoLdif += 'gidNumber: 500\n';
 		contenidoLdif += 'givenName: '+cn+'\n';
@@ -250,6 +249,7 @@
 
 						$('#tabla-cont').show();
 						$('#btnAgregarAlumnos').hide();
+						$('#btnAgregarGrado').hide();
 					});
 				});
 			});
@@ -345,7 +345,7 @@
 				var nombre = alumno.cn;
 				var grado = alumno.info;
 				tabla += "<td onclick=\"editarAlumno('"+alumno.uid+"')\"><a href=\"#\" style=\"text-decoration: none\"><span class=\"glyphicon glyphicon-th-list\"></span> Editar</a></td>";
-				tabla += "<td onclick=\"eliminarAlumno('"+nombre+"','"+grado+"')\"><a href=\"#\" style=\"text-decoration: none\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</a></td>";
+				tabla += "<td onclick=\"eliminarAlumnoSeg('"+alumno.uid+"','"+grado+"')\"><a href=\"#\" style=\"text-decoration: none\"><span class=\"glyphicon glyphicon-remove\"></span> Eliminar</a></td>";
 
 			}
 			tabla += '</tr>';
@@ -462,6 +462,8 @@
 		} else if (tipo == 'edicion') {
 			$('#inicio').hide();
 			$('#modo-'+tipo).show();
+			$('#btnAgregarAlumnos').hide();
+			$('#modo-edicion > #editar').hide()
 
 			buscarPorCategoria('info', function(ret) {
 				var json = ldap2json(ret, 'info');
