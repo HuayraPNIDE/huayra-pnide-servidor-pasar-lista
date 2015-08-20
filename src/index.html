@@ -46,6 +46,36 @@
 		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
+	function crearHome(uid, uidNumber) {
+
+		var fs = require('fs');
+		var dir = '/fs/'+uid;
+
+		fs.mkdir(dir, function(err) {
+			if(err) {
+				alert('/fs parece no estar montado');
+				return;
+			}
+
+			fs.chown(dir, uidNumber, 500, function(err) { //500 es 'alumnos'
+				if(err) {
+					alert('Imposible asignar a '+uid+' como propietario de '+dir);
+					return;
+				}
+
+				fs.chmod(dir, 0710, function(err) {
+					if(err) {
+						alert('Imposible asignar permisos a '+dir);
+						return;
+					}
+
+				});
+			});
+
+		});
+
+	}
+
 	function editarAlumno(uid) {
 
 		buscarAlumno('uid', uid, function(ret) {
@@ -233,7 +263,7 @@
 
 				var ultimoUidNumber;
 				if(!json.length) {
-					ultimoUidNumber = 1000;
+					ultimoUidNumber = 1001;
 				} else {
 					ultimoUidNumber = json[json.length - 1].uidNumber;
 				}
@@ -247,6 +277,7 @@
 				var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
 
 				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
+					crearHome(uid, proximoUidNumber);
 
 					filtroActivo = 'info';
 					buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
