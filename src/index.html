@@ -46,6 +46,22 @@
 		$('#filtro-selector').html(texto+'<span class="caret"></span>');
 	}
 
+	function setearPassword(uid, pass, cb) {
+
+		var exec = require('child_process').exec;
+		var fs = require('fs');
+
+		var cmd = 'ldappasswd -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
+		cmd += '\"uid='+uid+',ou=People,dc=primariadigital,dc=local\" ';
+		cmd += '-s '+pass;
+
+
+		exec(cmd, function(error, stdout, stderr) {
+			cb(stdout);
+		});
+	}
+
+
 	function crearHome(uid, uidNumber) {
 
 		var fs = require('fs');
@@ -149,22 +165,25 @@
 						fs.renameSync('/fs/'+alumno.uid, '/fs/'+nOpts.uid);
 					}
 	
-					buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
+					setearPassword(nOpts.uid, nOpts.pass, function(ret) {
+
+						buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
 	
-						$('#modo-edicion > #editar').hide()
+							$('#modo-edicion > #editar').hide()
 	
-						$('#tabla-cont').empty();
-						var json = ldap2json(ret, 'cn');
+							$('#tabla-cont').empty();
+							var json = ldap2json(ret, 'cn');
 	
-						$('#btnAgregarAlumnos').on('click', function() {
-							$('#agregar').show();
-							$('#btnAgregarAlumnos').hide();
+							$('#btnAgregarAlumnos').on('click', function() {
+								$('#agregar').show();
+								$('#btnAgregarAlumnos').hide();
+							});
+	
+							var opts = {editar: true};
+							imprimirTabla('#tabla-cont', json, opts);
+							$('#tabla-cont').show();
+							$('#btnAgregarAlumnos').show();
 						});
-	
-						var opts = {editar: true};
-						imprimirTabla('#tabla-cont', json, opts);
-						$('#tabla-cont').show();
-						$('#btnAgregarAlumnos').show();
 					});
 				});
 			});
@@ -295,25 +314,28 @@
 				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
 					crearHome(uid, proximoUidNumber);
 
-					filtroActivo = 'info';
-					buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
+					setearPassword(uid, pass, function(ret) {
 
-						$('#tabla-cont').empty();
-						console.log(ret);
-						var json = ldap2json(ret, 'cn');
-						console.log(json);
+						filtroActivo = 'info';
+						buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
 
-						$('#btnAgregarAlumnos').on('click', function() {
-							$('#agregar').show();
+							$('#tabla-cont').empty();
+							console.log(ret);
+							var json = ldap2json(ret, 'cn');
+							console.log(json);
+
+							$('#btnAgregarAlumnos').on('click', function() {
+								$('#agregar').show();
+								$('#btnAgregarAlumnos').hide();
+							});
+
+							var opts = {editar: true};
+							imprimirTabla('#tabla-cont', json, opts);
+
+							$('#tabla-cont').show();
 							$('#btnAgregarAlumnos').hide();
+							$('#btnAgregarGrado').hide();
 						});
-
-						var opts = {editar: true};
-						imprimirTabla('#tabla-cont', json, opts);
-
-						$('#tabla-cont').show();
-						$('#btnAgregarAlumnos').hide();
-						$('#btnAgregarGrado').hide();
 					});
 				});
 			});
