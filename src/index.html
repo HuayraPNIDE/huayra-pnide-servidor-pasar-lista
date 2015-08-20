@@ -2,10 +2,14 @@
 <html>
 <head>
 	<title>Pasar lista</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<link rel="stylesheet" href="css/bootstrap.min.css">
 	<link rel="stylesheet" href="css/bootstrap-theme.min.css">
 
+<style>
+#msg { display: none;}
+</style>
 	<script src="js/jquery-1.11.3.min.js"></script>
 	<script src="js/bootstrap.min.js"></script>
 
@@ -15,6 +19,28 @@
 
 	var md5 = require('md5');
 	console.log(md5('123'));
+
+    var tooltips = $("#cajaNombre, #cajaNombreUsuario, #cajaPass").tooltip({
+        show: true,
+        content: "No usar caracteres especiales con acentos o tildes",
+        position: {
+            my: "left top",
+            at: "bottom+5 top+5"
+        }
+    });
+
+
+	function omitirAcentos(text) {
+	    var acentos = new RegExp("[ÃÀÁÄÂÈÉËÊÌÍÏÎÒÓÖÔÙÚÜÛãàáäâèéëêìíïîòóöôùúüûÑñÇç]");
+
+	    for (var i=0; i<text.length; i++) {
+//                if(acentos.test(text[i])) {
+                if(text[i].match(acentos) !== null) {
+                    return true;
+                }
+	    }
+	    return false;
+	}
 
 	function activarFiltro(filtro) {
 		filtroActivo = filtro;
@@ -619,8 +645,14 @@
 </head>
 <body>
 
+<div class="container-fluid">
+
 	<h1>Matr&iacute;cula de alumnos - <a href="#"><span id="btnInicio" class="glyphicon glyphicon-pencil"></span></a></h1>
 	<br>
+<div class="alert alert-danger alert-dismissible" role="alert" id="msg">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <strong>ERROR</strong> No usar caracteres especiales con acentos o tildes.
+</div>
 	<div id="inicio">
 
 		<div class="btn-group" role="group" aria-label="...">
@@ -702,5 +734,6 @@
 	<div id="tabla-cont">
 	</div>
 
+</div>
 </body>
 </html>
