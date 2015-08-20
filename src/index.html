@@ -143,6 +143,11 @@
 				var exec = require('child_process').exec;
 				var cmd = 'ldapadd -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local -f '+archivoLdif;
 				exec(cmd, function(error, stdout, stderr) { //Agrego la entrada
+
+					if(alumno.uid != nOpts.uid) { //El nombre de usuario cambio, movemos home
+						var fs = require('fs');
+						fs.renameSync('/fs/'+alumno.uid, '/fs/'+nOpts.uid);
+					}
 	
 					buscarConFiltro(nOpts.grado, function(ret) { //Rearmo la interfaz
 	
@@ -199,11 +204,22 @@
 	function eliminarAlumno(uid, grado, cb) {
 
 		var exec = require('child_process').exec;
+		var fs = require('fs');
+
 		var cmd = 'ldapdelete -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
 		cmd += '\"uid='+uid+',ou=People,dc=primariadigital,dc=local\"';
 
+
 		exec(cmd, function(error, stdout, stderr) { //Elimino la entrada
 			cb(stdout);
+			/*
+			fs.rmdir('/fs/'+uid, function(err) {
+				if(err) {
+					alert('No se pudo eliminar directorio para '+uid);
+					return;
+				}
+			});
+			*/
 		});
 	}
 
