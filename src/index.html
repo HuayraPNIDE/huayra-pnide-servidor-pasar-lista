@@ -70,7 +70,7 @@
 
 				var cn = $('#modo-edicion > #editar').find('#cajaEditarNombre').val();
 				var uid = $('#modo-edicion > #editar').find('#cajaEditarNombreusuario').val();
-				var grado = $('#modo-edicion > #editar').find('#cajaEditarGrado').val().replace(/ /g,'');
+				var grado = $('#modo-edicion > #editar').find('#cajaEditarGrado').val().replace(/ /g,'').toUpperCase();
 				var pass = $('#modo-edicion > #editar').find('#cajaEditarPass').val();
 
 				var nOpts = {	"cn": cn,
