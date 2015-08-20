@@ -143,7 +143,26 @@
 			return;
 		}
 
-		eliminarAlumno(uid, grado);
+		eliminarAlumno(uid, grado, function(ret) {
+			buscarConFiltro(grado, function(ret) { //Rearmo la interfaz
+	
+				$('#modo-edicion > #editar').hide()
+	
+				$('#tabla-cont').empty();
+				var json = ldap2json(ret, 'cn');
+	
+				$('#btnAgregarAlumnos').on('click', function() {
+					$('#agregar').show();
+					$('#btnAgregarAlumnos').hide();
+				});
+	
+				var opts = {editar: true};
+				imprimirTabla('#tabla-cont', json, opts);
+				$('#tabla-cont').show();
+				$('#btnAgregarAlumnos').show();
+			});
+
+		});
 
 	}
 
@@ -152,8 +171,6 @@
 		var exec = require('child_process').exec;
 		var cmd = 'ldapdelete -c -x -w pnideldap_123456 -D cn=admin,dc=primariadigital,dc=local ';
 		cmd += '\"uid='+uid+',ou=People,dc=primariadigital,dc=local\"';
-
-		console.log('Voy a eliminar '+uid);
 
 		exec(cmd, function(error, stdout, stderr) { //Elimino la entrada
 			cb(stdout);
